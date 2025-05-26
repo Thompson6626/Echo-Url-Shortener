@@ -8,8 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
-	"Url-Shortener/internal/server"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {

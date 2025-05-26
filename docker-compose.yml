@@ -5,6 +5,7 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${BLUEPRINT_DB_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${BLUEPRINT_DB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: shortener_db
     ports:
       - "${BLUEPRINT_DB_PORT}:27017"
     volumes:

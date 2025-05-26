@@ -3,51 +3,31 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+func New(host string, port string) (*mongo.Client, error) {
+	uri := fmt.Sprintf("mongodb://%s:%s", host, port)
 
-type Service interface {
-	Health() map[string]string
-}
-
-type service struct {
-	db *mongo.Client
-}
-
-var (
-	host = os.Getenv("BLUEPRINT_DB_HOST")
-	port = os.Getenv("BLUEPRINT_DB_PORT")
-	//database = os.Getenv("BLUEPRINT_DB_DATABASE")
-)
-
-func New() Service {
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(fmt.Sprintf("mongodb://%s:%s", host, port)))
-
-	if err != nil {
-		log.Fatal(err)
-
-	}
-	return &service{
-		db: client,
-	}
-}
-
-func (s *service) Health() map[string]string {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	
+	client, err := mongo.Connect(
+		ctx,
+		options.Client().ApplyURI(uri).SetMaxPoolSize(100).SetMaxConnIdleTime(10*time.Second),
+	)
 
-	err := s.db.Ping(ctx, nil)
 	if err != nil {
-		log.Fatalf("db down: %v", err)
+		return nil, err
 	}
 
-	return map[string]string{
-		"message": "It's healthy",
+	// Ping the database to verify the connection
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, err
 	}
+
+	return client, nil
 }

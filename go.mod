@@ -3,11 +3,14 @@ module Url-Shortener
 go 1.24.1
 
 require (
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/testcontainers/testcontainers-go v0.37.0
 	github.com/testcontainers/testcontainers-go/modules/mongodb v0.37.0
 	go.mongodb.org/mongo-driver v1.17.3
+	go.uber.org/zap v1.27.0
+	github.com/go-playground/validator/v10 v10.26.0
 )
 
 require (
