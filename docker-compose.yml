@@ -1,15 +1,37 @@
 services:
   mongo_bp:
-    image: mongo:latest
+    image: mongo:8.0
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: ${BLUEPRINT_DB_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${BLUEPRINT_DB_ROOT_PASSWORD}
-      MONGO_INITDB_DATABASE: shortener_db
+      MONGO_INITDB_ROOT_USERNAME: ${DB_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${DB_NAME}
     ports:
-      - "${BLUEPRINT_DB_PORT}:27017"
+      - "${DB_PORT}:27017"
     volumes:
       - mongo_volume_bp:/data/db
+  redis:
+    image: redis:8.0.1-alpine
+    restart: unless-stopped
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+
+  redis-commander:
+    container_name: redis-commander
+    hostname: redis-commander
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOST=redis
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      - redis
+    restart:
+      unless-stopped
+
+
 
 volumes:
   mongo_volume_bp:
