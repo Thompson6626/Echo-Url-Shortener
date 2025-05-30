@@ -7,8 +7,7 @@ import (
 )
 
 type CreateUrlPayload struct {
-	ShortCode   string `json:"short_code"`
-	OriginalUrl string `json:"original_url"`
+	OriginalUrl string `json:"url"`
 }
 
 func (app *application) createUrlHandler(c echo.Context) error {
@@ -22,7 +21,6 @@ func (app *application) createUrlHandler(c echo.Context) error {
 	user := getUserFromContext(c)
 
 	url := &store.ShortURL{
-		ShortCode:   payload.ShortCode,
 		OriginalURL: payload.OriginalUrl,
 		UserID:      user.ID,
 	}
@@ -49,11 +47,36 @@ func (app *application) getUrlHandler(c echo.Context) error {
 
 	context := c.Request().Context()
 
-	originalUrl, err := app.store.Urls.GetByShortCode(context, shortCode)
+	shortenedUrl, err := app.store.Urls.GetByShortCode(context, shortCode)
 
 	if err != nil {
 		return app.internalServerError(c, err)
 	}
 
-	return c.Redirect(http.StatusFound, originalUrl)
+	return c.Redirect(http.StatusFound, shortenedUrl.OriginalURL)
+}
+
+func (app *application) getAllUrlsByUserHandler(c echo.Context) error {
+	user := getUserFromContext(c)
+
+	context := c.Request().Context()
+
+	urls, err := app.store.Urls.GetAllUrlsByUser(context, user.ID)
+
+	if err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	return app.jsonResponse(c, http.StatusOK, urls)
+}
+
+func (app *application) deleteUrlHandler(c echo.Context) error {
+	shortURL := c.Get("shortURL").(*store.ShortURL) // Get from context set by middleware
+	ctx := c.Request().Context()
+
+	if err := app.store.Urls.Delete(ctx, shortURL.ShortCode); err != nil {
+		return app.internalServerError(c, err)
+	}
+
+	return c.NoContent(http.StatusNoContent)
 }

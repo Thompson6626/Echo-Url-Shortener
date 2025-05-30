@@ -51,9 +51,20 @@ type UserStore struct {
 	collection *mongo.Collection
 }
 
-func (s *UserStore) GetById(c context.Context, id int64) (*User, error) {
+func (s *UserStore) GetById(ctx context.Context, id primitive.ObjectID) (*User, error) {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
 
-	return nil, nil
+	var user User
+	err := s.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (s *UserStore) Create(ctx context.Context, user *User) error {

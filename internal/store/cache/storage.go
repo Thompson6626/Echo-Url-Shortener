@@ -4,13 +4,14 @@ import (
 	"Url-Shortener/internal/store"
 	"context"
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Storage struct {
 	Users interface {
-		Get(context.Context, int64) (*store.User, error)
+		Get(context.Context, primitive.ObjectID) (*store.User, error)
 		Set(context.Context, *store.User) error
-		Delete(context.Context, int64)
+		Delete(context.Context, primitive.ObjectID)
 	}
 }
 

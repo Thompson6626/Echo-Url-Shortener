@@ -75,7 +75,7 @@ func (app *application) loginUserHandler(c echo.Context) error {
 	}
 
 	claims := jwt.MapClaims{
-		"sub": user.ID,
+		"sub": user.ID.Hex(),
 		"exp": time.Now().Add(app.config.auth.token.exp).Unix(),
 		"iat": time.Now().Unix(),
 		"nbf": time.Now().Unix(),

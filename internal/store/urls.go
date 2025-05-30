@@ -1,20 +1,37 @@
 package store
 
 import (
+	"Url-Shortener/internal/base62"
 	"context"
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"sync"
 	"time"
 )
 
 // 15 days
 var defaultExpiration = 24 * time.Hour * 15
 
+var mu sync.Mutex
+var currentSequence int64 = 0
+var machineID int64 = 164
+
+const maxSequence int64 = 9999
+
+func nextID() int64 {
+	mu.Lock()
+	defer mu.Unlock()
+
+	currentSequence = (currentSequence + 1) % maxSequence
+	id := machineID*10000 + currentSequence
+	return id
+}
+
 type ShortURL struct {
-	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	ID          primitive.ObjectID `bson:"_id,omitempty" json:"-"`
 	ShortCode   string             `bson:"short_code" json:"short_code"`                     // Unique short identifier
 	OriginalURL string             `bson:"original_url" json:"original_url"`                 // The original long URL
 	UserID      primitive.ObjectID `bson:"user_id" json:"user_id"`                           // Reference to User
@@ -33,6 +50,11 @@ func (s *ShortUrlsStore) Create(ctx context.Context, shortURL *ShortURL) error {
 
 	now := time.Now()
 
+	id := nextID()
+	shortCode := base62.Encode(id)
+
+	shortURL.ShortCode = shortCode
+
 	if shortURL.CreatedAt.IsZero() {
 		shortURL.CreatedAt = now
 	}
@@ -47,7 +69,7 @@ func (s *ShortUrlsStore) Create(ctx context.Context, shortURL *ShortURL) error {
 	return err
 }
 
-func (s *ShortUrlsStore) GetByShortCode(ctx context.Context, shortCode string) (string, error) {
+func (s *ShortUrlsStore) GetByShortCode(ctx context.Context, shortCode string) (*ShortURL, error) {
 	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
 	defer cancel()
 
@@ -66,10 +88,39 @@ func (s *ShortUrlsStore) GetByShortCode(ctx context.Context, shortCode string) (
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return "", ErrNotFound
+			return nil, ErrNotFound
 		}
-		return "", err
+		return nil, err
 	}
 
-	return updated.OriginalURL, nil
+	return &updated, nil
+}
+
+func (s *ShortUrlsStore) GetAllUrlsByUser(ctx context.Context, userID primitive.ObjectID) ([]ShortURL, error) {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	filter := bson.M{"user_id": userID}
+
+	cursor, err := s.collection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var urls []ShortURL
+	if err = cursor.All(ctx, &urls); err != nil {
+		return nil, err
+	}
+
+	return urls, nil
+}
+
+func (s *ShortUrlsStore) Delete(ctx context.Context, shortCode string) error {
+	ctx, cancel := context.WithTimeout(ctx, QueryTimeoutDuration)
+	defer cancel()
+
+	filter := bson.M{"short_code": shortCode}
+	_, err := s.collection.DeleteOne(ctx, filter)
+	return err
 }

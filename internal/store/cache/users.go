@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 )
 
@@ -16,8 +17,8 @@ type UserStore struct {
 
 const UserExpTime = time.Minute
 
-func (s *UserStore) Get(ctx context.Context, userID int64) (*store.User, error) {
-	cacheKey := fmt.Sprintf("user-%d", userID)
+func (s *UserStore) Get(ctx context.Context, userID primitive.ObjectID) (*store.User, error) {
+	cacheKey := fmt.Sprintf("user-%d", userID.Hex())
 
 	data, err := s.rdb.Get(ctx, cacheKey).Result()
 	if errors.Is(err, redis.Nil) {
@@ -38,7 +39,7 @@ func (s *UserStore) Get(ctx context.Context, userID int64) (*store.User, error) 
 }
 
 func (s *UserStore) Set(ctx context.Context, user *store.User) error {
-	cacheKey := fmt.Sprintf("user-%d", user.ID)
+	cacheKey := fmt.Sprintf("user-%d", user.ID.Hex())
 
 	jsonn, err := json.Marshal(user)
 	if err != nil {
@@ -48,7 +49,7 @@ func (s *UserStore) Set(ctx context.Context, user *store.User) error {
 	return s.rdb.SetEx(ctx, cacheKey, jsonn, UserExpTime).Err()
 }
 
-func (s *UserStore) Delete(ctx context.Context, userID int64) {
-	cacheKey := fmt.Sprintf("user-%d", userID)
+func (s *UserStore) Delete(ctx context.Context, userID primitive.ObjectID) {
+	cacheKey := fmt.Sprintf("user-%d", userID.Hex())
 	s.rdb.Del(ctx, cacheKey)
 }

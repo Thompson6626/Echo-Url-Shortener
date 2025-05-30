@@ -102,8 +102,15 @@ func (app *application) mount() http.Handler {
 
 	// URL resource routes (with token auth)
 	url := v1.Group("/urls")
-	url.POST("", app.createUrlHandler, app.AuthTokenMiddleware()) // Create short URL
-	url.GET("/:shortCode", app.getUrlHandler)                     // Resolve short URL
+	// Public routes (no auth)
+	url.GET("/:shortCode", app.getUrlHandler)
+
+	// Authenticated routes
+	urlAuth := v1.Group("/urls", app.AuthTokenMiddleware())
+
+	urlAuth.GET("/", app.getAllUrlsByUserHandler)
+	urlAuth.POST("/shorten", app.createUrlHandler)
+	urlAuth.DELETE("/:shortCode", app.checkUrlOwnership(app.deleteUrlHandler))
 
 	// -----------------------------
 	// Authentication Routes

@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 )
@@ -14,13 +15,15 @@ var (
 )
 
 type Storage struct {
-	Urls  interface{
+	Urls interface {
 		Create(context.Context, *ShortURL) error
-		GetByShortCode(context.Context, string) (string, error)
+		GetByShortCode(context.Context, string) (*ShortURL, error)
+		GetAllUrlsByUser(context.Context, primitive.ObjectID) ([]ShortURL, error)
+		Delete(context.Context, string) error
 	}
 	Users interface {
 		Create(context.Context, *User) error
-		GetById(context.Context, int64) (*User, error)
+		GetById(context.Context, primitive.ObjectID) (*User, error)
 		GetByEmail(context.Context, string) (*User, error)
 	}
 }
