@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"time"
 )
 
 type UserStore struct {
@@ -18,7 +19,7 @@ type UserStore struct {
 const UserExpTime = time.Minute
 
 func (s *UserStore) Get(ctx context.Context, userID primitive.ObjectID) (*store.User, error) {
-	cacheKey := fmt.Sprintf("user-%d", userID.Hex())
+	cacheKey := fmt.Sprintf("user-%s", userID.Hex())
 
 	data, err := s.rdb.Get(ctx, cacheKey).Result()
 	if errors.Is(err, redis.Nil) {
@@ -39,7 +40,7 @@ func (s *UserStore) Get(ctx context.Context, userID primitive.ObjectID) (*store.
 }
 
 func (s *UserStore) Set(ctx context.Context, user *store.User) error {
-	cacheKey := fmt.Sprintf("user-%d", user.ID.Hex())
+	cacheKey := fmt.Sprintf("user-%s", user.ID.Hex())
 
 	jsonn, err := json.Marshal(user)
 	if err != nil {
@@ -50,6 +51,6 @@ func (s *UserStore) Set(ctx context.Context, user *store.User) error {
 }
 
 func (s *UserStore) Delete(ctx context.Context, userID primitive.ObjectID) {
-	cacheKey := fmt.Sprintf("user-%d", userID.Hex())
+	cacheKey := fmt.Sprintf("user-%s", userID.Hex())
 	s.rdb.Del(ctx, cacheKey)
 }
